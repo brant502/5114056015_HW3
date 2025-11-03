@@ -1,128 +1,148 @@
-import streamlit as st
-import numpy as np
 import pandas as pd
+
+# --- 1. Data Understanding ---
+
+# Load the dataset
+file_path = 'realestate.csv'
+df = pd.read_csv(file_path)
+
+# Display the first 5 rows of the dataframe
+print("--- First 5 Rows ---")
+print(df.head())
+print("\n" + "="*50 + "\n")
+
+# Display summary information about the dataframe
+print("--- Dataframe Info ---")
+df.info()
+print("\n" + "="*50 + "\n")
+
+# Display descriptive statistics
+print("--- Descriptive Statistics ---")
+print(df.describe())
+
+
+# --- 2. Data Preparation & Feature Analysis ---
+
+# Drop the 'No' column as it is just an index
+df = df.drop('No', axis=1)
+
+# Define features (X) and target (y)
+features = ['TransactionDate', 'HouseAge', 'DistanceToMRT', 'NumberConvenienceStores', 'Latitude', 'Longitude']
+target = 'PriceOfUnitArea'
+
+X = df[features]
+y = df[target]
+
+# --- Feature Correlation Analysis ---
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Calculate correlation matrix
+corr_matrix = df.corr()
+
+# Plot heatmap
+plt.figure(figsize=(12, 8))
+sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f")
+plt.title('Correlation Matrix of Real Estate Data')
+
+# Save the heatmap as an image
+heatmap_path = 'correlation_heatmap.png'
+plt.savefig(heatmap_path)
+print(f"\n--- Correlation heatmap saved to {heatmap_path} ---\n")
+
+
+# --- Data Splitting ---
+from sklearn.model_selection import train_test_split
+
+# Split the data into training (80%) and testing (20%) sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+print("--- Data Splitting Summary ---")
+print(f"X_train shape: {X_train.shape}")
+print(f"X_test shape: {X_test.shape}")
+print(f"y_train shape: {y_train.shape}")
+print(f"y_test shape: {y_test.shape}")
+
+
+# --- 3. Modeling ---
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
-import plotly.graph_objects as go
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import numpy as np
+import statsmodels.api as sm
 
-# --- CRISP-DM: Business Understanding ---
-st.title("Simple Linear Regression Explorer")
-st.header("1. Business Understanding")
-st.write("""
-This application demonstrates a simple linear regression problem.
-The goal is to generate synthetic data based on a linear equation (`y = ax + b + noise`)
-and then use a machine learning model to learn the relationship between X and y.
-Users can interactively adjust the parameters used for data generation and modeling to understand their effects.
-""")
-
-# --- CRISP-DM: Data Understanding & Preparation (Data Generation) ---
-st.header("2. Data Generation")
-st.write("First, we'll generate our own data. You can control the parameters used to create the dataset.")
-
-# Sliders for user input
-st.sidebar.header("Data Generation Controls")
-n_points = st.sidebar.slider("Number of data points (n)", 100, 1000, 500)
-true_a = st.sidebar.slider("True Coefficient 'a' (y = ax + b + noise)", -10.0, 10.0, 2.0, 0.1)
-noise_variance = st.sidebar.slider("Noise Variance (var)", 0, 1000, 100)
-
-# Generate synthetic data
-true_b = 50  # Let's define a fixed true intercept
-X = np.linspace(0, 100, n_points)
-noise = np.random.normal(0, np.sqrt(noise_variance), n_points)
-y = true_a * X + true_b + noise
-
-# Reshape for scikit-learn
-X_reshaped = X.reshape(-1, 1)
-df = pd.DataFrame({'X': X, 'y': y})
-
-st.subheader("Generated Data Preview")
-st.write(df.head())
-
-# --- CRISP-DM: Modeling ---
-st.header("3. Modeling")
-st.write("Now, we'll use `scikit-learn`'s `LinearRegression` model to learn the relationship from the generated data.")
-
-# Train the model
+# Create and train the Linear Regression model
 model = LinearRegression()
-model.fit(X_reshaped, y)
+model.fit(X_train, y_train)
 
-# Get learned coefficients
-learned_a = model.coef_[0]
-learned_b = model.intercept_
-
-st.write(f"**True Equation:** `y = {true_a:.2f} * X + {true_b:.2f} + noise`")
-st.write(f"**Model's Learned Equation:** `y = {learned_a:.2f} * X + {learned_b:.2f}`")
-
-# Interactive slider for 'a'
-st.sidebar.header("Model Exploration")
-st.write("You can also manually modify the slope 'a' to see how it affects the evaluation metrics and the plot.")
-modified_a = st.sidebar.slider("Modify slope 'a'", -10.0, 10.0, learned_a, 0.1)
+# Make predictions on the test set
+y_pred = model.predict(X_test)
 
 
-# --- CRISP-DM: Evaluation ---
-st.header("4. Evaluation")
-st.write("Let's evaluate how well our model performed and compare it to the manually modified line.")
+# --- 4. Evaluation ---
 
-# Make predictions
-y_pred_learned = model.predict(X_reshaped)
-y_pred_modified = modified_a * X + learned_b # Use the model's intercept
+print("\n" + "="*50 + "\n")
+print("--- Model Evaluation ---")
 
 # Calculate metrics
-mse_learned = mean_squared_error(y, y_pred_learned)
-r2_learned = r2_score(y, y_pred_learned)
+mae = mean_absolute_error(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+rmse = np.sqrt(mse)
+r2 = r2_score(y_test, y_pred)
 
-mse_modified = mean_squared_error(y, y_pred_modified)
-r2_modified = r2_score(y, y_pred_modified)
+print(f"Mean Absolute Error (MAE): {mae:.2f}")
+print(f"Mean Squared Error (MSE): {mse:.2f}")
+print(f"Root Mean Squared Error (RMSE): {rmse:.2f}")
+print(f"R-squared (R2): {r2:.2f}")
 
-col1, col2 = st.columns(2)
-with col1:
-    st.write(f"**Learned Model's Performance:**")
-    st.write(f"  - MSE: {mse_learned:.2f}")
-    st.write(f"  - R2 Score: {r2_learned:.2f}")
+# For a more detailed statistical summary and prediction intervals, we use statsmodels
+# Add a constant to the predictor variables for the intercept
+X_train_sm = sm.add_constant(X_train)
+X_test_sm = sm.add_constant(X_test)
 
-with col2:
-    st.write(f"**Modified Model's Performance (a={modified_a:.2f}):**")
-    st.write(f"  - MSE: {mse_modified:.2f}")
-    st.write(f"  - R2 Score: {r2_modified:.2f}")
+# Fit the OLS (Ordinary Least Squares) model
+sm_model = sm.OLS(y_train, X_train_sm).fit()
 
+# Get prediction results
+predictions = sm_model.get_prediction(X_test_sm)
+pred_summary = predictions.summary_frame(alpha=0.05) # alpha=0.05 for 95% confidence
 
-# --- CRISP-DM: Deployment (Visualization) ---
-st.header("5. Visualization")
-st.write("The plot below shows the original data points and the different regression lines.")
+# Extract prediction intervals
+y_pred_sm = pred_summary['mean']
+pred_ci_lower = pred_summary['obs_ci_lower']
+pred_ci_upper = pred_summary['obs_ci_upper']
 
-fig = go.Figure()
-
-# 1. Scatter plot of the actual generated data
-fig.add_trace(go.Scatter(x=X, y=y, mode='markers', name='Generated Data (y)', marker=dict(opacity=0.6)))
-
-# 2. True regression line
-y_true_line = true_a * X + true_b
-fig.add_trace(go.Scatter(x=X, y=y_true_line, mode='lines', name=f'True Line (a={true_a:.2f})', line=dict(color='red', width=3)))
-
-# 3. Model's learned regression line
-fig.add_trace(go.Scatter(x=X, y=y_pred_learned, mode='lines', name=f'Learned Line (a={learned_a:.2f})', line=dict(color='green', width=3, dash='dash')))
-
-# 4. Manually modified regression line
-y_pred_modified_line = modified_a * X + learned_b
-fig.add_trace(go.Scatter(x=X, y=y_pred_modified_line, mode='lines', name=f'Modified Line (a={modified_a:.2f})', line=dict(color='orange', width=3, dash='dot')))
+print("\n--- Statsmodels OLS Results ---")
+print(sm_model.summary())
 
 
-fig.update_layout(
-    title="Exploring Simple Linear Regression",
-    xaxis_title="X",
-    yaxis_title="y",
-    legend_title="Lines"
-)
-st.plotly_chart(fig)
+# --- 5. Deployment (Visualization) ---
 
-# --- CRISP-DM: Deployment ---
-st.header("6. Deployment")
-st.write("""
-This Streamlit application itself is the deployment of the model.
-To run this application locally, ensure you have Python and the required packages installed (`streamlit`, `pandas`, `numpy`, `scikit-learn`, `plotly`).
+print("\n" + "="*50 + "\n")
+print("--- Generating Prediction Plot ---")
 
-**Run the app with the command:**
-```bash
-streamlit run app.py
-```
-""")
+# Create a dataframe for plotting
+plot_df = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred_sm, 'Lower_PI': pred_ci_lower, 'Upper_PI': pred_ci_upper})
+plot_df = plot_df.sort_values(by='Actual')
+
+plt.figure(figsize=(12, 8))
+
+# Scatter plot for actual vs predicted values
+sns.scatterplot(x='Actual', y='Predicted', data=plot_df, label='Predictions', alpha=0.7)
+
+# Prediction interval
+plt.fill_between(plot_df['Actual'], plot_df['Lower_PI'], plot_df['Upper_PI'], color='gray', alpha=0.2, label='95% Prediction Interval')
+
+# Line for perfect prediction (y=x)
+plt.plot([plot_df['Actual'].min(), plot_df['Actual'].max()], [plot_df['Actual'].min(), plot_df['Actual'].max()], 'r--', label='Perfect Prediction')
+
+plt.title('Actual vs. Predicted Prices with 95% Prediction Interval')
+plt.xlabel('Actual Price of Unit Area')
+plt.ylabel('Predicted Price of Unit Area')
+plt.legend()
+plt.grid(True)
+
+# Save the plot
+prediction_plot_path = 'prediction_plot.png'
+plt.savefig(prediction_plot_path)
+
+print(f"\n--- Prediction plot saved to {prediction_plot_path} ---")
