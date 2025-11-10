@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import joblib
 import os
+import json
 
 def train_and_save_model():
     # 載入數據
@@ -32,6 +33,7 @@ def train_and_save_model():
     # 評估模型
     print("評估模型...")
     y_pred = model.predict(X_test)
+    report = classification_report(y_test, y_pred, output_dict=True)
     
     # 創建 models 目錄（如果不存在）
     if not os.path.exists('models'):
@@ -55,6 +57,10 @@ def train_and_save_model():
     
     # 保存標籤分布數據
     df['label'].value_counts().to_json('models/label_distribution.json')
+    
+    # 保存評估報告（JSON）
+    with open('models/metrics.json', 'w', encoding='utf-8') as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
     
     print("完成！模型和相關文件已保存到 'models' 目錄")
 

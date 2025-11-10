@@ -38,11 +38,18 @@ def load_evaluation_data():
         
         # 載入混淆矩陣圖
         confusion_matrix_img = Image.open('models/confusion_matrix.png')
+
+        # 載入分類報告（metrics）
+        try:
+            with open('models/metrics.json', 'r', encoding='utf-8') as mf:
+                metrics = json.load(mf)
+        except Exception:
+            metrics = None
         
-        return label_distribution, confusion_matrix_img
+        return label_distribution, confusion_matrix_img, metrics
     except:
         st.error('無法載入評估數據。請確保已執行 train_model.py 生成必要文件。')
-        return None, None
+        return None, None, None
 
 def main():
     # 載入模型
@@ -51,7 +58,7 @@ def main():
         return
     
     # 載入評估數據
-    label_distribution, confusion_matrix_img = load_evaluation_data()
+    label_distribution, confusion_matrix_img, metrics = load_evaluation_data()
     if label_distribution is None or confusion_matrix_img is None:
         return
         
@@ -76,6 +83,40 @@ def main():
     
     with col3:
         st.image(confusion_matrix_img, caption='混淆矩陣', use_column_width=True)
+    
+    with col4:
+        st.subheader("分類指標 (precision / recall / f1)")
+        if metrics is not None:
+            # 轉換 metrics 為 DataFrame（只取 spam 和 ham 的 precision/recall/f1）
+            try:
+                # metrics example keys: '0', '1', 'accuracy', 'macro avg', 'weighted avg'
+                rows = {}
+                # prefer explicit keys 'ham'/'spam' if present, otherwise map '0'->ham '1'->spam
+                if 'ham' in metrics and 'spam' in metrics:
+                    keys = ['ham', 'spam']
+                else:
+                    # map numeric keys
+                    keys = []
+                    if '0' in metrics:
+                        keys.append('0')
+                    if '1' in metrics:
+                        keys.append('1')
+
+                for k in keys:
+                    m = metrics.get(k, {})
+                    rows[k] = {
+                        'precision': m.get('precision', 0),
+                        'recall': m.get('recall', 0),
+                        'f1-score': m.get('f1-score', 0)
+                    }
+                df_metrics = pd.DataFrame.from_dict(rows, orient='index')
+                st.dataframe(df_metrics)
+                # 畫條形圖
+                st.bar_chart(df_metrics)
+            except Exception as e:
+                st.error(f'無法解析 metrics.json：{e}')
+        else:
+            st.info('metrics.json 尚未生成，請先執行模型訓練以生成預計算資料。')
     
     # 互動式預測
     st.subheader("郵件分類測試")
