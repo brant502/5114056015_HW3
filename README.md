@@ -106,10 +106,3 @@ streamlit run src/app.py
 - 嘗試不同模型（logistic regression、random forest）並比較
 - 增加單元測試與 CI（例如 GitHub Actions）以驗證 pipeline
 
-## 聯絡與引用
-
-如果需要我幫您：把 `models/` 上傳到 repo、改用 LFS、或部署 Streamlit Cloud，告訴我您想要哪一步，我會接續處理。
-
----
-
-最後更新：請以 repo 的 `main` 分支為準，README 會隨更新持續改進。
