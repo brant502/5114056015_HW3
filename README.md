@@ -74,7 +74,7 @@ python src/train_model.py
 streamlit run src/app.py
 ```
 
-開啟瀏覽器並前往 `http://localhost:8501` 即可看到互動頁面。
+開啟瀏覽器並前往 `https://5114056015hw3.streamlit.app/` 即可看到互動頁面。
 
 ## 部署到 Streamlit Cloud（建議流程）
 
